@@ -7,7 +7,6 @@ module Reflex
 
 import Reflex.Class as X
 import Reflex.Adjustable.Class as X
-import Reflex.Collection as X
 import Reflex.Dynamic as X
 import Reflex.EventWriter.Base as X
 import Reflex.EventWriter.Class as X

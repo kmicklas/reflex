@@ -128,6 +128,7 @@ module Reflex.Class
   , sequenceDMapWithAdjust
   , sequenceDMapWithAdjustWithMove
   , mapMapWithAdjustWithMove
+  , traverseFactoredSumwithReplace
     -- * Miscellaneous convenience functions
   , ffor
     -- * Deprecated functions
@@ -150,6 +151,8 @@ module Reflex.Class
   ) where
 
 import Control.Applicative
+import Control.Lens (Prism', (^?), review)
+import qualified Control.Monad
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
@@ -1170,6 +1173,37 @@ mapMapWithAdjustWithMove :: forall t m k v v'. (Adjustable t m, Ord k) => (k -> 
 mapMapWithAdjustWithMove f m0 m' = do
   (out0 :: DMap (Const2 k v) (Constant v'), out') <- traverseDMapWithKeyWithAdjustWithMove (\(Const2 k) (Identity v) -> Constant <$> f k v) (mapToDMap m0) (const2PatchDMapWithMoveWith Identity <$> m')
   return (dmapToMapWith (\(Constant v') -> v') out0, patchDMapWithMoveToPatchMapWithMoveWith (\(Constant v') -> v') <$> out')
+
+traverseFactoredSumwithReplace
+  :: forall sum sing t m
+  .  (Reflex t, MonadHold t m, MonadFix m, Adjustable t m)
+  => (forall a. sum -> (forall tp. sing tp -> tp -> a) -> a)
+  -> (forall tp. sing tp -> Prism' sum tp)
+  -> sum
+  -> Event t sum
+  -> (forall tp. sing tp -> tp -> Event t tp -> m (Dynamic t tp))
+  -> m (Dynamic t sum)
+traverseFactoredSumwithReplace withVariant prismForVariant iv ev f = do
+    (initM :: m (Dynamic t sum), rest :: Event t sum) <- f' iv ev
+    rec
+      let eBoth = pushAlways (flip f' rest) e'
+          l = fst <$> eBoth
+          r = snd <$> eBoth
+      e' <- switchHold rest r
+    (firstD :: Dynamic t sum, restD :: Event t (Dynamic t sum))
+      <- runWithReplace initM l
+    Control.Monad.join <$> holdDyn firstD restD
+  where
+    f' :: forall m'. (MonadHold t m', MonadFix m')
+       => sum
+       -> Event t sum
+       -> m' (m (Dynamic t sum), Event t sum)
+    f' iv' ev' = withVariant iv' $ \(ot :: sing tp) (i :: tp) -> do
+      (sames :: Event t tp, rest :: Event t sum)
+        <- takeDropWhileJustE (^? prismForVariant ot) ev'
+      let firstRun = (fmap . fmap) (review (prismForVariant ot)) $
+            f ot i sames
+      pure (firstRun, rest)
 
 ------------------
 -- Cheap Functions

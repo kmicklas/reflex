@@ -1078,6 +1078,13 @@ class (Reflex t, Monad m) => Adjustable t m | m -> t where
   traverseDMapWithKeyWithAdjust :: GCompare k => (forall a. k a -> v a -> m (v' a)) -> DMap k v -> Event t (PatchDMap k v) -> m (DMap k v', Event t (PatchDMap k v'))
   traverseDMapWithKeyWithAdjustWithMove :: GCompare k => (forall a. k a -> v a -> m (v' a)) -> DMap k v -> Event t (PatchDMapWithMove k v) -> m (DMap k v', Event t (PatchDMapWithMove k v'))
 
+  traverseIntMapWithKeyWithAdjust fi im0 im' = do
+    (dm1, dmr) <- traverseDMapWithKeyWithAdjust fd _ (PatchDMap . intMapWithFunctorToDMap . fmap Identity . unPatchIntMap)
+    return (dmapToIntMap dm1, PatchIntMap . dmapToIntMap . mapKeyValuePairsMonotonic composeMaybe . unPatchDMap <$> dmr)
+   where
+    composeMaybe :: DSum (Const2 IntMap.Key v') (ComposeMaybe Identity) -> DSum (Const2 IntMap.Key (Maybe v')) Identity
+    composeMaybe (Const2 k :=> ComposeMaybe v) = (Const2 k :=> sequence v)
+
 instance Adjustable t m => Adjustable t (ReaderT r m) where
   runWithReplace a0 a' = do
     r <- ask

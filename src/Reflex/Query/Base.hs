@@ -38,6 +38,7 @@ import qualified Data.Some as Some
 import Data.These
 
 import Reflex.Class
+import Reflex.DynamicWriter.Class
 import Reflex.EventWriter.Base
 import Reflex.EventWriter.Class
 import Reflex.Host.Class
@@ -285,3 +286,6 @@ instance Requester t m => Requester t (QueryT t q m) where
 
 instance EventWriter t w m => EventWriter t w (QueryT t q m) where
   tellEvent = lift . tellEvent
+
+instance MonadDynamicWriter t w m => MonadDynamicWriter t w (QueryT t q m) where
+  tellDyn = lift . tellDyn

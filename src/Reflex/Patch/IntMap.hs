@@ -12,7 +12,8 @@ import Data.Maybe
 import Data.Semigroup
 import Reflex.Patch.Class
 
-newtype PatchIntMap a = PatchIntMap (IntMap (Maybe a)) deriving (Functor, Foldable, Traversable, Monoid)
+newtype PatchIntMap a = PatchIntMap { unPatchIntMap :: IntMap (Maybe a) }
+  deriving (Functor, Foldable, Traversable, Monoid)
 
 instance Patch (PatchIntMap a) where
   type PatchTarget (PatchIntMap a) = IntMap a

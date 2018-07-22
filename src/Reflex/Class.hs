@@ -1088,12 +1088,13 @@ class (Reflex t, Monad m) => Adjustable t m | m -> t where
   traverseDMapWithKeyWithAdjustWithMove :: GCompare k => (forall a. k a -> v a -> m (v' a)) -> DMap k v -> Event t (PatchDMapWithMove k v) -> m (DMap k v', Event t (PatchDMapWithMove k v'))
 
   traverseIntMapWithKeyWithAdjust fi im0 im' = do
-    (dm1, dmr) <- traverseDMapWithKeyWithAdjust fd (intMapWithFunctorToDMap $ fmap Identity im0) (patchIntMapToPatchDMap <$> im')
-    --return (dmapToIntMap dm1, patchDMapToPatchIntMap <$> dmr)
-    return _
-   where
-    fd :: Const2 IntMap.Key v a -> Identity a -> m v'
-    fd (Const2 k) (Identity v) = fi k v
+    --(dm1, dmr) <- traverseDMapWithKeyWithAdjust (\(Const2 k) (Identity v) -> fi k v) (intMapWithFunctorToDMap $ fmap Identity im0) 
+    (dm1, dmr) <- traverseDMapWithKeyWithAdjust _ _ (PatchDMap . _ . unPatchDMap . patchIntMapToPatchDMap <$> im')
+    return (dmapToIntMap dm1, patchDMapToPatchIntMap <$> dmr)
+    --return _
+   --where
+   -- fd :: Const2 IntMap.Key v a -> Identity a -> m v'
+   -- fd (Const2 k) (Identity v) = fi k v
 
 instance Adjustable t m => Adjustable t (ReaderT r m) where
   runWithReplace a0 a' = do
